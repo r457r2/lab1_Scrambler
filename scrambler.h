@@ -11,6 +11,7 @@ public:
 	static const int alphSize;
 	class Exception{};
 
+//методы
 	static int GetNum(QChar one);
 
 	//шифры перестановок, не реализую Магические квадраты
@@ -24,9 +25,24 @@ public:
 	//шифры сложной замены, не реализую Гаммирование
 	static QString Gronsfeld (QString one, int key);
 	static QString ManyAlphabet (QString one, QString key);
+	QString XOR ();
 
 	//ассиметричные шифры
+	QString ElGamal ();
+	QString RSA ();
 
+	class GammaScrambler
+	{
+	public:
+		QString sourse;
+		QString result;
+
+		int* gamma;
+		int gammaSize;
+
+		GammaScrambler(QString one);
+		~GammaScrambler();
+	};
 };
 
 #endif // SCRAMBLER_H

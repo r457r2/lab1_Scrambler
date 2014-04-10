@@ -194,4 +194,24 @@ QString Scrambler::ManyAlphabet(QString one, QString key)
 	return res;
 }
 
+Scrambler::GammaScrambler::GammaScrambler (QString one)
+{
+	sourse = one;
 
+	gammaSize = qrand() % sourse.length();
+	gamma = new int[gammaSize];
+
+	for (int i = 0; i < gammaSize; i++)
+		gamma[i] = qrand();
+
+	result = "";
+	for (int i = 0; i < sourse.length(); i++)
+	{
+		result = result + alphabet[(GetNum(sourse.at(i)) + gamma[i]) % alphSize];
+	}
+}
+
+Scrambler::GammaScrambler::~GammaScrambler ()
+{
+	delete gamma;
+}
