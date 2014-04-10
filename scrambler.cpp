@@ -1,5 +1,5 @@
 #include "scrambler.h"
-
+#include <math.h>
 
 const QChar Scrambler::alphabet[] = {
 	'а', 'б', 'в', 'г', 'д', 'е', 'ё',
@@ -140,3 +140,58 @@ QString Scrambler::DoubleReshuffle (QString one, int widht, int length, int _wke
 
 	return res;
 }
+
+QString Scrambler::Caesar(QString one, int shift)
+{
+	QString res = "";
+
+	for (int i = 0; i < one.length(); i++)
+	{
+		res = res + alphabet[(GetNum(one.at(i)) + shift) % alphSize];
+	}
+
+	return res;
+}
+
+QString Scrambler::Gronsfeld(QString one, int _key)
+{
+	int size = 0;
+
+	while ((_key / pow(10, size)) > 10)
+		size++;
+
+	int key[size];
+	for (int i = size - 1; i >= 0; i--)
+	{
+		key[i] = _key % 10;
+		_key = _key / 10;
+	}
+
+	QString res = "";
+
+	for (int i = 0; i < one.length(); i++)
+	{
+		res = res + alphabet[(GetNum(one.at(i)) + key[i % size]) % alphSize];
+	}
+
+	return res;
+}
+
+QString Scrambler::ManyAlphabet(QString one, QString key)
+{
+	QString res = "";
+	int size = key.length();
+	int sortArr[size];
+
+	for (int i = 0; i < size; i++)
+		sortArr[i] = GetNum(key[i]);
+
+	for (int i = 0; i < one.length(); i++)
+	{
+		res = res + alphabet[(GetNum(one.at(i)) + sortArr[i % size]) % alphSize];
+	}
+
+	return res;
+}
+
+

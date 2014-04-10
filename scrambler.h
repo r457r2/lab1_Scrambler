@@ -21,10 +21,12 @@ public:
 	//шифр простой замены, не реализую Полибианский квадрат
 	static QString Caesar (QString one, int shift);
 
-	//шифры сложной замены
+	//шифры сложной замены, не реализую Гаммирование
 	static QString Gronsfeld (QString one, int key);
 	static QString ManyAlphabet (QString one, QString key);
-	static QString XOR (QString one);
+
+	//ассиметричные шифры
+
 };
 
 #endif // SCRAMBLER_H
