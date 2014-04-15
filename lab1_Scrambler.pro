@@ -20,3 +20,11 @@ HEADERS  += mainwindow.h \
     scrambler.h
 
 FORMS    += mainwindow.ui
+
+LIBS += G:/Projects/Qt/lab1_Scrambler/libgmp-10.dll \
+      G:/Projects/Qt/lab1_Scrambler/libgmpxx-4.dll
+
+
+
+QMAKE_LFLAGS += -lgmp \
+	    -lgmpxx

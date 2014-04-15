@@ -1,12 +1,13 @@
 #include "scrambler.h"
 #include <math.h>
+#include <QDebug>
+#include "gmpxx.h"
 
 const QChar Scrambler::alphabet[] = {
-	'а', 'б', 'в', 'г', 'д', 'е', 'ё',
-	'ж', 'з', 'и', 'й', 'к', 'л', 'м',
-	'н', 'о', 'п', 'р', 'с', 'т', 'у',
-	'ф', 'х', 'ц', 'ч', 'ш', 'щ', 'ъ',
-	'ы', 'ь', 'э', 'ю', 'я', ' '};
+	'a', 'b', 'c', 'd', 'e', 'f', 'g',
+	'h', 'i', 'j', 'k', 'l', 'm', 'n',
+	'o', 'p', 'q', 'r', 's', 't', 'u',
+	'v', 'w', 'x', 'y', 'z', ' '};
 
 const int Scrambler::alphSize = sizeof(Scrambler::alphabet) / sizeof(Scrambler::alphabet[0]);
 
@@ -14,30 +15,57 @@ const int Scrambler::alphSize = sizeof(Scrambler::alphabet) / sizeof(Scrambler::
 
 int Scrambler::GetNum(QChar one)
 {
-	for (int i = 0; i < 34; i++)
+	for (int i = 0; i < alphSize; i++)
 		if (one == alphabet[i])
 			return i;
 
-	throw Exception();
+	return 0;
 }
 
-QString Scrambler::SingleReshuffle (QString one, int tableLenth)
+
+
+QString Scrambler::EncryptSingleReshuffle (QString str, int tableLenth)
 {
+	while ((str.length() % tableLenth) != 0)
+		str = str + ' ';
+
 	QString res = "";
 
 	for (int i = 0; i < tableLenth; i++)
 	{
-		for (int j = 0; j < one.length(); j += tableLenth)
-			if ((i + j) < one.length())
-				res = res + one.at(i+j);
+		for (int j = 0; j < str.length(); j += tableLenth)
+			if ((i + j) < str.length())
+				res = res + str.at(i+j);
 		res = res + ' ';
 	}
 
 	return res;
 }
 
-QString Scrambler::SingleReshuffleWithKey (QString one, QString key)
+QString Scrambler::DecryptSingleReshuffle (QString str, int tableLenth)
 {
+	while ((str.length() % tableLenth) != 0)
+		str = str + ' ';
+
+	QString res = "";
+
+	for (int i = 0; i < tableLenth; i++)
+	{
+		for (int j = 0; j < str.length(); j += tableLenth + 1)
+			if ((i + j) < str.length())
+				res = res + str.at(i + j);
+	}
+
+	return res;
+}
+
+
+
+QString Scrambler::EncryptSingleReshuffleWithKey (QString str, QString key)
+{
+	while ((str.length() % key.length()) != 0)
+		str = str + ' ';
+
 	QString res = "";
 	int size = key.length();
 	int sortArr[size];
@@ -47,29 +75,87 @@ QString Scrambler::SingleReshuffleWithKey (QString one, QString key)
 
 	for (int i = 0; i < size; i++)
 	{
-		int num = 35;
+		int num = alphSize;
 		int pos = 0;
-		for (int i = 0; i < size; i++)
-			if (num > sortArr[i])
+		for (int j = 0; j < size; j++)
+			if (num > sortArr[j])
 			{
-				num = sortArr[i];
-				pos = i;
+				num = sortArr[j];
+				pos = j;
 			}
-		sortArr[pos] = 35;
+		sortArr[pos] = alphSize;
 
-		for (int j = 0; j < one.length(); j += size)
-			if ((j + pos) < one.length())
-				res = res + one.at(j + pos);
+		for (int j = 0; j < str.length(); j += size)
+			if ((j + pos) < str.length())
+				res = res + str.at(j + pos);
 		res = res + ' ';
 	}
 
 	return res;
 }
 
-QString Scrambler::DoubleReshuffle (QString one, int widht, int length, int _wkey, int _lkey)
+QString Scrambler::DecryptSingleReshuffleWithKey (QString str, QString key)
 {
-	if ((widht * length) < one.length())
-		throw Exception();
+	while ((str.length() % key.length()) != 0)
+		str = str + ' ';
+
+	QString res = "";
+	int size = key.length();
+	int tokenSize = str.length() / size;
+	int sortArr[size];
+	int keyArr[size];
+
+	for (int i = 0; i < size; i++)
+		sortArr[i] = GetNum(key[i]);
+
+	for (int i = 0; i < size; i++)
+	{
+		int num = alphSize;
+		int pos = 0;
+		for (int j = 0; j < size; j++)
+			if (num > sortArr[j])
+			{
+				num = sortArr[j];
+				pos = j;
+			}
+		sortArr[pos] = alphSize;
+
+		keyArr[i] = pos;
+	}
+
+	for (int i = 0; i < tokenSize - 1; i++)
+		for (int j = 0; j < size; j++)
+		{
+			if (((tokenSize) * keyArr[j] + i) < str.length())
+				res = res + str.at((tokenSize) * keyArr[j] + i);
+		}
+
+	return res;
+}
+
+
+
+QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
+{
+	int widht = 1;
+	int length = 1;
+
+	int k = 1;
+	while ((_wkey / k) >= 10)
+	{
+		k *= 10;
+		widht++;
+	}
+
+	k = 1;
+	while ((_lkey / k) >= 10)
+	{
+		k *= 10;
+		length++;
+	}
+
+	while ((widht * length) % str.length() != 0)
+		str = str + ' ';
 
 	int wkey[widht];
 	for (int i = widht - 1; i >= 0; i--)
@@ -78,10 +164,6 @@ QString Scrambler::DoubleReshuffle (QString one, int widht, int length, int _wke
 		_wkey = _wkey / 10;
 	}
 
-	if (((_wkey % 10) != 0) || ((_wkey / 10) != 0))
-		throw Exception();
-
-
 	int lkey[length];
 	for (int i = length - 1; i >= 0; i--)
 	{
@@ -89,48 +171,38 @@ QString Scrambler::DoubleReshuffle (QString one, int widht, int length, int _wke
 		_lkey = _lkey / 10;
 	}
 
-	if (((_lkey % 10) != 0) || ((_lkey / 10) != 0))
-		throw Exception();
-
-	for (int i = 0; i < widht; i++)
-		if ((wkey[i] >= widht) || (wkey[i] = 0))
-			throw Exception();
-
-	for (int i = 0; i < length; i++)
-		if ((lkey[i] >= length) || (lkey[i] = 0))
-			throw Exception();
 
 	QString tmp = "";
 	QString res = "";
 
 	for (int i = 0; i < widht; i++)
 	{
-		int num = widht;
+		int num = 10;
 		int pos = 0;
-		for (int i = 0; i < widht; i++)
-			if (num > wkey[i])
+		for (int j = 0; j < widht; j++)
+			if (num > wkey[j])
 			{
-				num = wkey[i];
-				pos = i;
+				num = wkey[j];
+				pos = j;
 			}
-		wkey[pos] = widht;
+		wkey[pos] = 10;
 
-		for (int j = 0; j < one.length(); j += widht)
-			if ((j + pos) < one.length())
-				tmp = tmp + one.at(j + pos);
+		for (int j = 0; j < str.length(); j += widht)
+			if ((j + pos) < str.length())
+				tmp = tmp + str.at(j + pos);
 	}
 
 	for (int i = 0; i < length; i++)
 	{
-		int num = length;
+		int num = 10;
 		int pos = 0;
-		for (int i = 0; i < length; i++)
-			if (num > lkey[i])
+		for (int j = 0; j < length; j++)
+			if (num > lkey[j])
 			{
-				num = lkey[i];
-				pos = i;
+				num = lkey[j];
+				pos = j;
 			}
-		lkey[pos] = length;
+		lkey[pos] = 10;
 
 		for (int j = 0; j < tmp.length(); j += length)
 			if ((j + pos) < tmp.length())
@@ -141,24 +213,180 @@ QString Scrambler::DoubleReshuffle (QString one, int widht, int length, int _wke
 	return res;
 }
 
-QString Scrambler::Caesar(QString one, int shift)
+QString Scrambler::DecryptDoubleReshuffle (QString str, int _wkey, int _lkey)
+{
+	int widht = 1;
+	int length = 1;
+
+	int k = 1;
+	while ((_wkey / k) >= 10)
+	{
+		k *= 10;
+		widht++;
+	}
+
+	k = 1;
+	while ((_lkey / k) >= 10)
+	{
+		k *= 10;
+		length++;
+	}
+
+	while ((widht * length + length) % str.length() != 0)
+		str = str + ' ';
+
+	int wkey[widht];
+	for (int i = widht - 1; i >= 0; i--)
+	{
+		wkey[i] = _wkey % 10;
+		_wkey = _wkey / 10;
+	}
+
+	int lkey[length];
+	for (int i = length - 1; i >= 0; i--)
+	{
+		lkey[i] = _lkey % 10;
+		_lkey = _lkey / 10;
+	}
+
+
+	QString tmp = "";
+	QString res = "";
+
+	int tokenSize = str.length() / length;
+	int lkeyArr[length];
+	for (int i = 0; i < length; i++)
+	{
+		int num = 10;
+		int pos = 0;
+		for (int j = 0; j < length; j++)
+			if (num > lkey[j])
+			{
+				num = lkey[j];
+				pos = j;
+			}
+		lkey[pos] = 10;
+
+		lkeyArr[i] = pos;
+	}
+
+	for (int i = 0; i < tokenSize - 1; i++)
+		for (int j = 0; j < length; j++)
+		{
+			if (((tokenSize * lkeyArr[j]) + i) < str.length())
+			{
+				tmp = tmp + str.at((tokenSize * lkeyArr[j]) + i);
+			}
+		}
+
+
+	tokenSize = tmp.length() / widht;
+	int wkeyArr[widht];
+	for (int i = 0; i < widht; i++)
+	{
+		int num = 10;
+		int pos = 0;
+		for (int j = 0; j < widht; j++)
+			if (num > wkey[j])
+			{
+				num = wkey[j];
+				pos = j;
+			}
+		wkey[pos] = 10;
+
+		wkeyArr[i] = pos;
+	}
+
+	for (int i = 0; i < tokenSize ; i++)
+		for (int j = 0; j < widht; j++)
+		{
+			if (((tokenSize * wkeyArr[j]) + i) < tmp.length())
+			{
+				res = res + tmp.at((tokenSize * wkeyArr[j]) + i);
+			}
+		}
+
+	return res;
+}
+
+
+
+int Scrambler::Module(int one, int base)
+{
+	while (one < 0)
+		one += base;
+
+	return one % base;
+}
+
+
+
+
+QString Scrambler::EncryptCaesar(QString str, int shift)
 {
 	QString res = "";
 
-	for (int i = 0; i < one.length(); i++)
+	for (int i = 0; i < str.length(); i++)
 	{
-		res = res + alphabet[(GetNum(one.at(i)) + shift) % alphSize];
+		res = res + alphabet[Module(GetNum(str.at(i)) + shift, alphSize)];
 	}
 
 	return res;
 }
 
-QString Scrambler::Gronsfeld(QString one, int _key)
+QString Scrambler::DecryptCaesar(QString str, int shift)
 {
-	int size = 0;
+	QString res = "";
 
-	while ((_key / pow(10, size)) > 10)
+	for (int i = 0; i < str.length(); i++)
+	{
+		res = res + alphabet[Module(GetNum(str.at(i)) - shift, alphSize)];
+	}
+
+	return res;
+}
+
+
+
+QString Scrambler::EncryptGronsfeld(QString str, int _key)
+{
+	int size = 1;
+
+	int k = 1;
+	while ((_key / k) >= 10)
+	{
+		k *= 10;
 		size++;
+	}
+
+	qDebug() << " dfg " << size;
+	int key[size];
+	for (int i = size - 1; i >= 0; i--)
+	{
+		key[i] = _key % 10;
+		_key = _key / 10;
+	}
+
+	QString res = "";
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		res = res + alphabet[Module(GetNum(str.at(i)) + key[i % size], alphSize)];
+	}
+
+	return res;
+}
+
+QString Scrambler::DecryptGronsfeld(QString str, int _key)
+{
+	int size = 1;
+
+	int k = 1;
+	while ((_key / k) >= 10)
+	{
+		k *= 10;
+		size++;
+	}
 
 	int key[size];
 	for (int i = size - 1; i >= 0; i--)
@@ -169,15 +397,17 @@ QString Scrambler::Gronsfeld(QString one, int _key)
 
 	QString res = "";
 
-	for (int i = 0; i < one.length(); i++)
+	for (int i = 0; i < str.length(); i++)
 	{
-		res = res + alphabet[(GetNum(one.at(i)) + key[i % size]) % alphSize];
+		res = res + alphabet[Module(GetNum(str.at(i)) - key[i % size], alphSize)];
 	}
 
 	return res;
 }
 
-QString Scrambler::ManyAlphabet(QString one, QString key)
+
+
+QString Scrambler::EncryptManyAlphabet(QString str, QString key)
 {
 	QString res = "";
 	int size = key.length();
@@ -186,32 +416,129 @@ QString Scrambler::ManyAlphabet(QString one, QString key)
 	for (int i = 0; i < size; i++)
 		sortArr[i] = GetNum(key[i]);
 
-	for (int i = 0; i < one.length(); i++)
+	for (int i = 0; i < str.length(); i++)
 	{
-		res = res + alphabet[(GetNum(one.at(i)) + sortArr[i % size]) % alphSize];
+		res = res + alphabet[Module((GetNum(str.at(i)) + sortArr[i % size]), alphSize)];
 	}
 
 	return res;
 }
 
-Scrambler::GammaScrambler::GammaScrambler (QString one)
+QString Scrambler::DecryptManyAlphabet(QString str, QString key)
 {
-	sourse = one;
+	QString res = "";
+	int size = key.length();
+	int sortArr[size];
 
-	gammaSize = qrand() % sourse.length();
+	for (int i = 0; i < size; i++)
+		sortArr[i] = GetNum(key[i]);
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		res = res + alphabet[Module((GetNum(str.at(i)) - sortArr[i % size]), alphSize)];
+	}
+
+	return res;
+}
+
+
+
+Scrambler::Gamma::Gamma ()
+{
+	gammaSize = 64 / sizeof(alphabet[0]);
 	gamma = new int[gammaSize];
 
 	for (int i = 0; i < gammaSize; i++)
 		gamma[i] = qrand();
-
-	result = "";
-	for (int i = 0; i < sourse.length(); i++)
-	{
-		result = result + alphabet[(GetNum(sourse.at(i)) + gamma[i]) % alphSize];
-	}
 }
 
-Scrambler::GammaScrambler::~GammaScrambler ()
+Scrambler::Gamma::~Gamma ()
 {
 	delete gamma;
+}
+
+QString Scrambler::Gamma::EncryptGamma(QString str, Gamma& key)
+{
+	QString res = "";
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		res = res + alphabet[Module((GetNum(str.at(i)) + key.gamma[i % key.gammaSize]), alphSize)];
+	}
+
+	return res;
+}
+
+QString Scrambler::Gamma::DecryptGamma(QString str, Gamma& key)
+{
+	QString res = "";
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		res = res + alphabet[Module((GetNum(str.at(i)) - key.gamma[i % key.gammaSize]), alphSize)];
+
+	}
+
+	return res;
+}
+
+
+
+Scrambler::ElGamal::ElGamal (int _P, int _G, int _X)
+{
+	if ((_P <= _G) || (_P <= _X))
+		throw Exception();
+
+	secretKeyX = _X;
+
+	ok.moduleP = _P;
+	ok.baseG = _G;
+	ok.baseY = static_cast<int>(pow(static_cast<double>(ok.baseG), secretKeyX)) % ok.moduleP;
+}
+
+QString Scrambler::ElGamal::EncryptElGamal(QString str, openKey key)
+{
+	QString result = "";
+
+	int sessionKeyK = qrand();
+	while ((sessionKeyK <= 0) || (sessionKeyK >= key.moduleP))
+		sessionKeyK = qrand();
+sessionKeyK = 1;//не забыть убрать
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		int num = GetNum(str.at(i));
+
+		int a = (static_cast<unsigned int>(pow(key.baseG, sessionKeyK))) % key.moduleP;
+		result.append(reinterpret_cast<QChar*>(&a), sizeof(a)/sizeof(QChar));
+
+		int b = (static_cast<unsigned int>(pow(key.baseY, sessionKeyK) * num)) % key.moduleP;
+		result.append(reinterpret_cast<QChar*>(&b), sizeof(b)/sizeof(QChar));
+	}
+
+	return result;
+}
+
+QString Scrambler::ElGamal::DecryptElGamal(QString str, openKey key, int secretKey)
+{
+	QString result = "";
+
+	for (int i = 0; i < str.length(); i += 4)
+	{
+		QChar aarr[2];
+		aarr[0] = str.at(i);
+		aarr[1] = str.at(i + 1);
+		int a = *(reinterpret_cast<int*>(aarr));
+
+		QChar barr[2];
+		barr[0] = str.at(i + 2);
+		barr[1] = str.at(i + 3);
+		int b = *(reinterpret_cast<int*>(barr));
+
+		int M = (static_cast<unsigned int>(b * pow(a, (key.moduleP - 1 - secretKey)))) % key.moduleP;
+
+		qDebug() << "resM = " << M;
+		result += alphabet[M];
+	}
+	return result;
 }

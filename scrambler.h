@@ -3,46 +3,97 @@
 
 #include <QString>
 #include <QChar>
+#include <stdexcept>
 
 class Scrambler
 {
 public:
 	static const QChar alphabet[];
 	static const int alphSize;
-	class Exception{};
 
 //методы
-	static int GetNum(QChar one);
-
 	//шифры перестановок, не реализую Магические квадраты
-	static QString SingleReshuffle (QString one, int tableLenth);
-	static QString SingleReshuffleWithKey (QString one, QString key);
-	static QString DoubleReshuffle (QString one, int widht, int length, int _wkey, int _lkey);
+	//одиночная перестановка
+	static QString EncryptSingleReshuffle (QString str, int tableLenth);
+	static QString DecryptSingleReshuffle (QString str, int tableLenth);
+
+	//одиночная перестановка с ключом
+	static QString EncryptSingleReshuffleWithKey (QString str, QString key);
+	static QString DecryptSingleReshuffleWithKey (QString str, QString key);
+
+	//двойная перестановка
+	static QString EncryptDoubleReshuffle (QString str, int _wkey, int _lkey);
+	static QString DecryptDoubleReshuffle (QString str, int _wkey, int _lkey);
+
+
+
 
 	//шифр простой замены, не реализую Полибианский квадрат
-	static QString Caesar (QString one, int shift);
+	//шифр Цезаря
+	static QString EncryptCaesar (QString str, int shift);
+	static QString DecryptCaesar (QString str, int shift);
 
-	//шифры сложной замены, не реализую Гаммирование
-	static QString Gronsfeld (QString one, int key);
-	static QString ManyAlphabet (QString one, QString key);
-	QString XOR ();
 
-	//ассиметричные шифры
-	QString ElGamal ();
-	QString RSA ();
+	//шифры сложной замены
+	//шифр Гронсвельда
+	static QString EncryptGronsfeld (QString str, int key);
+	static QString DecryptGronsfeld (QString str, int key);
 
-	class GammaScrambler
+	//многоалфавитная замена
+	static QString EncryptManyAlphabet (QString str, QString key);
+	static QString DecryptManyAlphabet (QString str, QString key);
+
+	//гаммирование
+	class Gamma
 	{
 	public:
-		QString sourse;
-		QString result;
-
-		int* gamma;
 		int gammaSize;
+		int* gamma;
 
-		GammaScrambler(QString one);
-		~GammaScrambler();
+		Gamma();
+		Gamma(Gamma& other)
+		{
+			throw std::runtime_error("should not be called");
+		}
+		~Gamma();
+
+		static QString EncryptGamma(QString str, Gamma& key);
+		static QString DecryptGamma(QString str, Gamma& key);
 	};
+
+
+
+	//ассиметричные шифры
+	//Эль Гамаля пока не работает
+	class ElGamal
+	{
+	public:
+		class Exception{};
+
+		int secretKeyX;
+
+		struct openKey
+		{
+			int moduleP;
+			int baseG;
+			int baseY;
+		} ok;
+
+		ElGamal(int _P, int _G, int _X);
+
+		static QString EncryptElGamal (QString str, openKey key);
+		static QString DecryptElGamal (QString str, openKey key, int secretKey);
+	};
+
+	//RSA тоже пока не работает
+	class RSA
+	{
+
+	};
+
+protected:
+	static int GetNum(QChar one);
+	static int Module (int one, int base);
 };
 
 #endif // SCRAMBLER_H
