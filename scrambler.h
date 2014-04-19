@@ -4,6 +4,7 @@
 #include <QString>
 #include <QChar>
 #include <stdexcept>
+#include "gmpxx.h"
 
 class Scrambler
 {
@@ -70,19 +71,22 @@ public:
 	public:
 		class Exception{};
 
-		int secretKeyX;
+		mpz_class secretKeyX;
 
 		struct openKey
 		{
-			int moduleP;
-			int baseG;
-			int baseY;
+			mpz_class moduleP;
+			mpz_class baseG;
+			mpz_class baseY;
 		} ok;
 
-		ElGamal(int _P, int _G, int _X);
+		ElGamal(QString _P, QString _G, QString _X);
 
 		static QString EncryptElGamal (QString str, openKey key);
-		static QString DecryptElGamal (QString str, openKey key, int secretKey);
+		static QString DecryptElGamal (QString str, openKey key, mpz_class secretKey);
+
+	protected:
+		static mpz_class IntPow(mpz_class one, mpz_class two);
 	};
 
 	//RSA тоже пока не работает

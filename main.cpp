@@ -3,6 +3,7 @@
 #include <QDebug>
 #include "scrambler.h"
 #include <iostream>
+#include "gmpxx.h"
 
 int main(int argc, char *argv[])
 {
@@ -10,15 +11,14 @@ int main(int argc, char *argv[])
 	MainWindow w;
 	w.show();
 
-
-	QString str("aaaaa");
+	QString str("abcdiefg hjklmnop");
 	qDebug() << "Originl = "  << str;
 
-	Scrambler::Gamma one;
+	Scrambler::ElGamal one("29", "15", "4");
 
-	str = Scrambler::Gamma::EncryptGamma(str, one);
+	str = Scrambler::ElGamal::EncryptElGamal(str, one.ok);
 	qDebug() << "Encrypt = "  << str;
 
-	qDebug() << "Decrypt = " << Scrambler::Gamma::DecryptGamma(str, one);
+	qDebug() << "Decrypt = " << Scrambler::ElGamal::DecryptElGamal(str, one.ok, one.secretKeyX);
 	return a.exec();
 }

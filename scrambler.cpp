@@ -1,7 +1,7 @@
 #include "scrambler.h"
 #include <math.h>
 #include <QDebug>
-#include "gmpxx.h"
+
 
 const QChar Scrambler::alphabet[] = {
 	'a', 'b', 'c', 'd', 'e', 'f', 'g',
@@ -441,8 +441,6 @@ QString Scrambler::DecryptManyAlphabet(QString str, QString key)
 	return res;
 }
 
-
-
 Scrambler::Gamma::Gamma ()
 {
 	gammaSize = 64 / sizeof(alphabet[0]);
@@ -484,60 +482,95 @@ QString Scrambler::Gamma::DecryptGamma(QString str, Gamma& key)
 
 
 
-Scrambler::ElGamal::ElGamal (int _P, int _G, int _X)
+mpz_class Scrambler::ElGamal::IntPow(mpz_class one, mpz_class two)
 {
-	if ((_P <= _G) || (_P <= _X))
+	mpz_class res("1");
+
+	while (two != 0)
+	{
+		res *= one;
+		two--;
+	}
+
+	return res;
+}
+
+
+
+Scrambler::ElGamal::ElGamal (QString _P, QString _G, QString _X)
+{
+	secretKeyX = _X.toStdString();
+
+	ok.moduleP = _P.toStdString();
+	ok.baseG = _G.toStdString();
+
+
+	if ((ok.moduleP <= ok.baseG) || (ok.moduleP <= secretKeyX))
 		throw Exception();
 
-	secretKeyX = _X;
+	mpz_class tmp;
+	tmp = IntPow(ok.baseG, secretKeyX);
 
-	ok.moduleP = _P;
-	ok.baseG = _G;
-	ok.baseY = static_cast<int>(pow(static_cast<double>(ok.baseG), secretKeyX)) % ok.moduleP;
+	ok.baseY = tmp % ok.moduleP;
 }
 
 QString Scrambler::ElGamal::EncryptElGamal(QString str, openKey key)
 {
 	QString result = "";
 
-	int sessionKeyK = qrand();
+	gmp_randstate_t rnd;
+	gmp_randinit_default(rnd);
+
+	mpz_t K;
+	mpz_init(K);
+	mpz_urandomm(K, rnd, key.moduleP.get_mpz_t());
+
+	mpz_class sessionKeyK(K);
+	if (sessionKeyK == 0)
+		sessionKeyK += 1;
+	mpz_clear(K);
+
 	while ((sessionKeyK <= 0) || (sessionKeyK >= key.moduleP))
 		sessionKeyK = qrand();
-sessionKeyK = 1;//не забыть убрать
 
 	for (int i = 0; i < str.length(); i++)
 	{
 		int num = GetNum(str.at(i));
 
-		int a = (static_cast<unsigned int>(pow(key.baseG, sessionKeyK))) % key.moduleP;
-		result.append(reinterpret_cast<QChar*>(&a), sizeof(a)/sizeof(QChar));
+		mpz_class a = (IntPow(key.baseG, sessionKeyK) % key.moduleP);
+		long int aa = a.get_ui();
+		result.append(reinterpret_cast<QChar*>(&aa), sizeof(aa)/sizeof(QChar));
 
-		int b = (static_cast<unsigned int>(pow(key.baseY, sessionKeyK) * num)) % key.moduleP;
-		result.append(reinterpret_cast<QChar*>(&b), sizeof(b)/sizeof(QChar));
+		mpz_class b = ((IntPow(key.baseY, sessionKeyK) * num) % key.moduleP);
+		long int bb = b.get_ui();
+		result.append(reinterpret_cast<QChar*>(&bb), sizeof(bb)/sizeof(QChar));
 	}
-
 	return result;
 }
 
-QString Scrambler::ElGamal::DecryptElGamal(QString str, openKey key, int secretKey)
+QString Scrambler::ElGamal::DecryptElGamal(QString str, openKey key, mpz_class secretKey)
 {
 	QString result = "";
 
-	for (int i = 0; i < str.length(); i += 4)
+	int lisize = sizeof(long int) / sizeof(QChar);
+	int df = lisize * 2;
+
+for (int i = 0; i < str.length(); i += df)
 	{
-		QChar aarr[2];
-		aarr[0] = str.at(i);
-		aarr[1] = str.at(i + 1);
-		int a = *(reinterpret_cast<int*>(aarr));
+		QChar aarr[lisize];
+		for (int j = 0; j < lisize; j++)
+			aarr[j] = str.at(i + j);
+		long int a = *(reinterpret_cast<long int*>(aarr));
 
-		QChar barr[2];
-		barr[0] = str.at(i + 2);
-		barr[1] = str.at(i + 3);
-		int b = *(reinterpret_cast<int*>(barr));
+		QChar barr[lisize];
+		for (int j = 0; j < lisize; j++)
+			barr[j] = str.at(i + lisize + j);
+		long int b = *(reinterpret_cast<long int*>(barr));
 
-		int M = (static_cast<unsigned int>(b * pow(a, (key.moduleP - 1 - secretKey)))) % key.moduleP;
-
-		qDebug() << "resM = " << M;
+		mpz_class tmp;
+		tmp = a;
+		mpz_class My = ((IntPow(tmp, (key.moduleP - 1 - secretKey)) * b) % key.moduleP);
+		long int M = My.get_si();
 		result += alphabet[M];
 	}
 	return result;

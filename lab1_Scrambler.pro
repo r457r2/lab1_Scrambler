@@ -21,10 +21,8 @@ HEADERS  += mainwindow.h \
 
 FORMS    += mainwindow.ui
 
-LIBS += G:/Projects/Qt/lab1_Scrambler/libgmp-10.dll \
-      G:/Projects/Qt/lab1_Scrambler/libgmpxx-4.dll
-
-
+LIBS += $$PWD/libgmp-10.dll \
+      $$PWD/libgmpxx-4.dll
 
 QMAKE_LFLAGS += -lgmp \
 	    -lgmpxx
