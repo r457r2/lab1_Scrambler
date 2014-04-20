@@ -423,7 +423,7 @@
        <string>Генерация ключа</string>
       </property>
      </widget>
-     <widget class="QLineEdit" name="lineEdit">
+     <widget class="QLineEdit" name="editKeySeed">
       <property name="geometry">
        <rect>
         <x>10</x>
