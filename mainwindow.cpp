@@ -251,12 +251,14 @@ Scrambler::Algoritm MainWindow::selectedAlgo()
 	else
 		return Scrambler::Invalid;
 }
-
+#include <QDebug>
+#include <iostream>
 void MainWindow::on_pushAsymmEncrypt_clicked()
 {
 	switch(selectedAsymmAlgo())
 	{
 	case Scrambler::ElGamalCypher:
+	{
 		if(ui->editAsymmSource->text() == ""
 				|| ui->editAsymmPrivateKey->text() == ""
 				|| ui->editAsymmPubKey->text() == "")
@@ -264,8 +266,20 @@ void MainWindow::on_pushAsymmEncrypt_clicked()
 			QMessageBox::critical(this, "Ошибка", "Исходная строка и ключи не должны быть пустыми.", QMessageBox::Ok);
 			return;
 		}
-		QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
+
+		QStringList key = ui->editAsymmPubKey->text().split(" ", QString::SkipEmptyParts);
+		if(key.length() < 3)
+		{
+			QMessageBox::critical(this, "Ошибка", "Открытый ключ должен состоять из трех чисел, разделенных пробелом.", QMessageBox::Ok);
+			return;
+		}
+
+		Scrambler::ElGamal::openKey pubkey(key[0], key[1], key[2]);
+		ui->editAsymmEncrypted->setText(Scrambler::ElGamal::EncryptElGamal(ui->editAsymmSource->text(), pubkey));
+
+		lastUsedAlgo = Scrambler::ElGamalCypher;
 		break;
+	}
 
 	case Scrambler::Rsa:
 		QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
@@ -285,7 +299,7 @@ void MainWindow::on_pushAsymmEncrypt_clicked()
 
 void MainWindow::on_pushAsymmDecrypt_clicked()
 {
-	if(lastUsedAlgo != selectedAlgo())
+	if(lastUsedAlgo != selectedAsymmAlgo())
 	{
 		QMessageBox::critical(this, "Ошибка", "Строка была зашифрована другим алгоритмом.", QMessageBox::Ok);
 		return;
@@ -294,8 +308,26 @@ void MainWindow::on_pushAsymmDecrypt_clicked()
 	switch(lastUsedAlgo)
 	{
 	case Scrambler::ElGamalCypher:
-		QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
+	{
+		if(ui->editAsymmEncrypted->text() == ""
+				|| ui->editAsymmPrivateKey->text() == ""
+				|| ui->editAsymmPubKey->text() == "")
+		{
+			QMessageBox::critical(this, "Ошибка", "Зашифрованная строка и ключи не должны быть пустыми.", QMessageBox::Ok);
+			return;
+		}
+
+		QStringList key = ui->editAsymmPubKey->text().split(" ", QString::SkipEmptyParts);
+		if(key.length() < 3)
+		{
+			QMessageBox::critical(this, "Ошибка", "Открытый ключ должен состоять из трех чисел, разделенных пробелом.", QMessageBox::Ok);
+			return;
+		}
+
+		Scrambler::ElGamal::openKey pubkey(key[0], key[1], key[2]);
+		ui->editAsymmSource->setText(Scrambler::ElGamal::DecryptElGamal(ui->editAsymmEncrypted->text(), pubkey, ui->editAsymmPrivateKey->text()));
 		break;
+	}
 
 	case Scrambler::Rsa:
 		QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
@@ -324,5 +356,23 @@ Scrambler::Algoritm MainWindow::selectedAsymmAlgo()
 
 void MainWindow::on_pushGenKey_clicked()
 {
-	QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
+	if(selectedAsymmAlgo() == Scrambler::ElGamalCypher)
+	{
+		if(ui->editKeySeed->text() == "")
+		{
+			QMessageBox::critical(this, "Ошибка", "Строка генерации не должна быть пустой.", QMessageBox::Ok);
+			return;
+		}
+
+		QStringList seed = ui->editKeySeed->text().split(" ", QString::SkipEmptyParts);
+		if(seed.length() < 3)
+		{
+			QMessageBox::critical(this, "Ошибка", "Строка генерации должна содержать три положительных целых числа.", QMessageBox::Ok);
+			return;
+		}
+
+		Scrambler::ElGamal el(seed[0], seed[1], seed[2]);
+		ui->editAsymmPubKey->setText(el.ok.toQString());
+		ui->editAsymmPrivateKey->setText(el.getSecretKeyStr());
+	}
 }

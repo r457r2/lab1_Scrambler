@@ -115,9 +115,10 @@ public:
 			QString toQString()
 			{
 				QString result = "";
-
-				result = moduleP.get_str().c_str() + ' ';
-				result += baseG.get_str().c_str()+ ' ';
+				result = moduleP.get_str().c_str();
+				result += " ";
+				result += baseG.get_str().c_str();
+				result += " ";
 				result += baseY.get_str().c_str();
 
 				return result;
