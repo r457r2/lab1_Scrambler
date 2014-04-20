@@ -29,14 +29,16 @@ QString Scrambler::EncryptSingleReshuffle (QString str, int tableLenth)
 	while ((str.length() % tableLenth) != 0)
 		str = str + ' ';
 
+	int bunch = str.length() / tableLenth;
+
 	QString res = "";
 
-	for (int i = 0; i < tableLenth; i++)
+	for (int i = 0; i < bunch; i++)
 	{
-		for (int j = 0; j < str.length(); j += tableLenth)
+		for (int j = 0; j < str.length(); j += bunch)
 			if ((i + j) < str.length())
 				res = res + str.at(i+j);
-		res = res + ' ';
+			res += " ";
 	}
 
 	return res;
@@ -46,13 +48,12 @@ QString Scrambler::DecryptSingleReshuffle (QString str, int tableLenth)
 {
 	QString res = "";
 
-	int tmp = str.length() / tableLenth;
-	qDebug() << tmp;
-	for (int i = 0; i < tmp; i++)
+	int bunch = str.length() / (tableLenth + 1);
+
+	for (int i = 0; i < tableLenth; i++)
 	{
-		for (int j = 0; j < str.length(); j += tmp)
-			if ((i + j) < str.length())
-				res = res + str.at(i + j);
+		for (int j = 0; j < bunch; j++)
+			res = res + str.at(((tableLenth + 1) * j) + i);
 	}
 
 	return res;
@@ -65,10 +66,16 @@ QString Scrambler::DecryptSingleReshuffle (QString str, int tableLenth)
 QString Scrambler::EncryptSingleReshuffleWithKey (QString str, QString key)
 {
 	while ((str.length() % key.length()) != 0)
-		str = str + ' ';
+		str = str + " ";
+
+	int bunch = str.length() / key.length();
+
+	int size = key.length();
 
 	QString res = "";
-	int size = key.length();
+	res = EncryptSingleReshuffle(str, size);
+	QString tmp = res;
+
 	int sortArr[size];
 
 	for (int i = 0; i < size; i++)
@@ -86,10 +93,8 @@ QString Scrambler::EncryptSingleReshuffleWithKey (QString str, QString key)
 			}
 		sortArr[pos] = alphSize;
 
-		for (int j = 0; j < str.length(); j += size)
-			if ((j + pos) < str.length())
-				res = res + str.at(j + pos);
-		res = res + ' ';
+		for (int j = 0; j < bunch; j++)
+			res[(size + 1) * j + i] = tmp.at((size + 1) * j + pos);
 	}
 
 	return res;
@@ -98,13 +103,16 @@ QString Scrambler::EncryptSingleReshuffleWithKey (QString str, QString key)
 QString Scrambler::DecryptSingleReshuffleWithKey (QString str, QString key)
 {
 	while ((str.length() % key.length()) != 0)
-		str = str + ' ';
+		str = str + " ";
 
-	QString res = "";
+	int bunch = str.length() / (key.length() + 1);
+
 	int size = key.length();
-	int tokenSize = str.length() / size;
+
+	QString res = str;
+	QString tmp = str;
+
 	int sortArr[size];
-	int keyArr[size];
 
 	for (int i = 0; i < size; i++)
 		sortArr[i] = GetNum(key[i]);
@@ -121,16 +129,11 @@ QString Scrambler::DecryptSingleReshuffleWithKey (QString str, QString key)
 			}
 		sortArr[pos] = alphSize;
 
-		keyArr[i] = pos;
+		for (int j = 0; j < bunch; j++)
+			res[(size + 1) * j + pos] = tmp.at((size + 1) * j + i);
 	}
 
-	for (int i = 0; i < tokenSize - 1; i++)
-		for (int j = 0; j < size; j++)
-		{
-			if (((tokenSize) * keyArr[j] + i) < str.length())
-				res = res + str.at((tokenSize) * keyArr[j] + i);
-		}
-
+	res = DecryptSingleReshuffle(res, size);
 	return res;
 }
 
@@ -509,8 +512,24 @@ mpz_class Scrambler::ElGamal::IntPow(mpz_class one, mpz_class two)
 
 Scrambler::ElGamal::ElGamal(QString _P, QString _G, QString _X)
 {
-	ok = *(new openKey(_P, _G, _X));
+	mpz_class moduleP;
+	moduleP = _P.toStdString();
+	mpz_class baseG;
+	baseG = _G.toStdString();
 	secretKeyX = _X.toStdString();
+
+	if ((moduleP <= baseG) || (moduleP <= secretKeyX))
+		throw Exception();
+
+	mpz_class tmp;
+	tmp = IntPow(baseG, secretKeyX);
+
+	mpz_class baseY;
+	baseY = tmp % moduleP;
+	QString _Y = baseY.get_str().c_str();
+
+	openKey tmpok(_P, _G, _Y);
+	ok = tmpok;
 }
 
 QString Scrambler::ElGamal::EncryptElGamal(QString str, openKey key)

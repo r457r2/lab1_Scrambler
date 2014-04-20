@@ -19,6 +19,6 @@ int main(int argc, char *argv[])
 	str = Scrambler::ElGamal::EncryptElGamal(str, one.ok);
 	qDebug() << "Encrypt = "  << str;
 
-	qDebug() << "Decrypt = " << Scrambler::ElGamal::DecryptElGamal(str, one.ok, one.secretKeyX);
+	qDebug() << "Decrypt = " << Scrambler::ElGamal::DecryptElGamal(str, one.ok, one.getSecretKeyStr());
 	return a.exec();
 }

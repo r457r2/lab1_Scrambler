@@ -94,30 +94,29 @@ public:
 			mpz_class baseG;
 			mpz_class baseY;
 
-			openKey(){};
-			openKey(QString _P, QString _G, QString _X)
+			openKey(){}
+			openKey(QString _P, QString _G, QString _Y)
 			{
-				mpz_class X;
-				X = _X.toStdString();
-
 				moduleP = _P.toStdString();
 				baseG = _G.toStdString();
+				baseY = _Y.toStdString();
+			}
 
-				if ((moduleP <= baseG) || (moduleP <= X))
-					throw Exception();
-
-				mpz_class tmp;
-				tmp = IntPow(baseG, X);
-
-				baseY = tmp % moduleP;
+			void operator= (openKey &other)
+			{
+				moduleP = other.moduleP;
+				baseG = other.baseG;
+				baseY = other.baseY;
 			}
 
 			QString toQString()
 			{
 				QString result = "";
 
-				result = moduleP.get_str().c_str() + ' ';
-				result += baseG.get_str().c_str()+ ' ';
+				result = moduleP.get_str().c_str();
+				result += " ";
+				result += baseG.get_str().c_str();
+				result += " ";
 				result += baseY.get_str().c_str();
 
 				return result;
