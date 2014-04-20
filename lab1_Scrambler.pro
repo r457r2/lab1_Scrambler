@@ -24,5 +24,5 @@ FORMS    += mainwindow.ui
 LIBS += $$PWD/libgmp-10.dll \
       $$PWD/libgmpxx-4.dll
 
-QMAKE_LFLAGS += -lgmp \
-	    -lgmpxx
+#QMAKE_LFLAGS += -lgmp \
+#	    -lgmpxx
