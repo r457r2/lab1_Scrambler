@@ -9,6 +9,22 @@
 class Scrambler
 {
 public:
+
+	enum Algoritm
+	{
+		Invalid,
+		SingleReshuffle,
+		SingleWithKey,
+		DoubleReshuffle,
+		Caesar,
+		Gronsfeld,
+		ManyAlphabet,
+		GammaCypher,
+		ElGamalCypher,
+		Rsa
+	};
+
+
 	static const QChar alphabet[];
 	static const int alphSize;
 
@@ -52,7 +68,7 @@ public:
 		int* gamma;
 
 		Gamma();
-		Gamma(Gamma& other)
+		Gamma(Gamma& unused)
 		{
 			throw std::runtime_error("should not be called");
 		}
@@ -61,8 +77,6 @@ public:
 		static QString EncryptGamma(QString str, Gamma& key);
 		static QString DecryptGamma(QString str, Gamma& key);
 	};
-
-
 
 	//ассиметричные шифры
 	//Эль Гамаля пока не работает
