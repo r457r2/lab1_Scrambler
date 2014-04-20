@@ -44,14 +44,13 @@ QString Scrambler::EncryptSingleReshuffle (QString str, int tableLenth)
 
 QString Scrambler::DecryptSingleReshuffle (QString str, int tableLenth)
 {
-	while ((str.length() % tableLenth) != 0)
-		str = str + ' ';
-
 	QString res = "";
 
-	for (int i = 0; i < tableLenth; i++)
+	int tmp = str.length() / tableLenth;
+	qDebug() << tmp;
+	for (int i = 0; i < tmp; i++)
 	{
-		for (int j = 0; j < str.length(); j += tableLenth + 1)
+		for (int j = 0; j < str.length(); j += tmp)
 			if ((i + j) < str.length())
 				res = res + str.at(i + j);
 	}
@@ -154,6 +153,9 @@ QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 		length++;
 	}
 
+	if ((widht * length) < str.length())
+		return "";
+
 	while ((widht * length) % str.length() != 0)
 		str = str + ' ';
 
@@ -215,6 +217,9 @@ QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 
 QString Scrambler::DecryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 {
+	if (str.length() == 0)
+		return "";
+
 	int widht = 1;
 	int length = 1;
 
@@ -497,7 +502,7 @@ mpz_class Scrambler::ElGamal::IntPow(mpz_class one, mpz_class two)
 
 
 
-Scrambler::ElGamal::ElGamal (QString _P, QString _G, QString _X)
+Scrambler::ElGamal::ElGamal(QString _P, QString _G, QString _X)
 {
 	secretKeyX = _X.toStdString();
 
@@ -575,3 +580,27 @@ for (int i = 0; i < str.length(); i += df)
 	}
 	return result;
 }
+
+
+
+Scrambler::RSA::RSA(QString _p, QString _q)
+{
+	mpz_class p;
+	p = _p.toStdString();
+	mpz_class q;
+	q = _q.toStdString();
+
+	ok.N = p * q;
+
+	ck.M = (p - 1) * (q - 1);
+}
+
+//		1.	Получатель выбирает 2 больших простых целых числа p и q,
+//		на основе которых вычисляет N=pq; M=(p-1)(q-1).
+//		2.	Получатель выбирает целое случайное число d, которое является взаимопростым
+//			со значением М, и вычисляет значение е из условия ed=1(mod M).
+//		3.	d и N публикуются как открытый ключ, е и М являются закрытым ключом.
+//		4.	Если S –сообщение и его длина: 1<Len(S)<N, то зашифровать этот текст можно
+//			как S’=Sd(mod N), то есть шифруется открытым ключом.
+//		5.	Получатель расшифровывает с помощью закрытого ключа: S=S’e(mod N).
+
