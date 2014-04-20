@@ -180,8 +180,24 @@ QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 	}
 
 
-	QString tmp = "";
-	QString res = "";
+	QString tmp = str;
+	QString res = tmp;
+
+	for (int i = 0; i < length; i++)
+	{
+		int num = 10;
+		int pos = 0;
+		for (int j = 0; j < length; j++)
+			if (num > lkey[j])
+			{
+				num = lkey[j];
+				pos = j;
+			}
+		lkey[pos] = 10;
+
+		for (int j = 0; j < widht; j++)
+			tmp[(length * j) + i] = str.at((length * j) + pos);
+	}
 
 	for (int i = 0; i < widht; i++)
 	{
@@ -195,27 +211,8 @@ QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 			}
 		wkey[pos] = 10;
 
-		for (int j = 0; j < str.length(); j += widht)
-			if ((j + pos) < str.length())
-				tmp = tmp + str.at(j + pos);
-	}
-	qDebug() << tmp;
-	for (int i = 0; i < length; i++)
-	{
-		int num = 10;
-		int pos = 0;
 		for (int j = 0; j < length; j++)
-			if (num > lkey[j])
-			{
-				num = lkey[j];
-				pos = j;
-			}
-		lkey[pos] = 10;
-
-		for (int j = 0; j < tmp.length(); j += length)
-			if ((j + pos) < tmp.length())
-				res = res + tmp.at(j + pos);
-		res = res + ' ';
+			res[(length * i) + j] = tmp.at((length * pos) + j);
 	}
 
 	return res;
@@ -243,7 +240,7 @@ QString Scrambler::DecryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 		length++;
 	}
 
-	while ((widht * length + length) % str.length() != 0)
+	while ((widht * length) % str.length() != 0)
 		str = str + ' ';
 
 	int wkey[widht];
@@ -261,38 +258,9 @@ QString Scrambler::DecryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 	}
 
 
-	QString tmp = "";
-	QString res = "";
+	QString tmp = str;
+	QString res = tmp;
 
-	int tokenSize = str.length() / length;
-	int lkeyArr[length];
-	for (int i = 0; i < length; i++)
-	{
-		int num = 10;
-		int pos = 0;
-		for (int j = 0; j < length; j++)
-			if (num > lkey[j])
-			{
-				num = lkey[j];
-				pos = j;
-			}
-		lkey[pos] = 10;
-
-		lkeyArr[i] = pos;
-	}
-
-	for (int i = 0; i < tokenSize - 1; i++)
-		for (int j = 0; j < length; j++)
-		{
-			if (((tokenSize * lkeyArr[j]) + i) < str.length())
-			{
-				tmp = tmp + str.at((tokenSize * lkeyArr[j]) + i);
-			}
-		}
-
-
-	tokenSize = tmp.length() / widht;
-	int wkeyArr[widht];
 	for (int i = 0; i < widht; i++)
 	{
 		int num = 10;
@@ -305,17 +273,25 @@ QString Scrambler::DecryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 			}
 		wkey[pos] = 10;
 
-		wkeyArr[i] = pos;
+		for (int j = 0; j < length; j++)
+			tmp[(length * pos) + j] = str.at((length * i) + j);
 	}
 
-	for (int i = 0; i < tokenSize ; i++)
-		for (int j = 0; j < widht; j++)
-		{
-			if (((tokenSize * wkeyArr[j]) + i) < tmp.length())
+	for (int i = 0; i < length; i++)
+	{
+		int num = 10;
+		int pos = 0;
+		for (int j = 0; j < length; j++)
+			if (num > lkey[j])
 			{
-				res = res + tmp.at((tokenSize * wkeyArr[j]) + i);
+				num = lkey[j];
+				pos = j;
 			}
-		}
+		lkey[pos] = 10;
+
+		for (int j = 0; j < widht; j++)
+			res[(length * j) + pos] = tmp.at((length * j) + i);
+	}
 
 	return res;
 }
