@@ -73,17 +73,55 @@ public:
 
 		mpz_class secretKeyX;
 
-		struct openKey
+		class openKey
 		{
+		public:
 			mpz_class moduleP;
 			mpz_class baseG;
 			mpz_class baseY;
-		} ok;
+
+			openKey(){};
+			openKey(QString _P, QString _G, QString _X)
+			{
+				mpz_class X;
+				X = _X.toStdString();
+
+				moduleP = _P.toStdString();
+				baseG = _G.toStdString();
+
+				if ((moduleP <= baseG) || (moduleP <= X))
+					throw Exception();
+
+				mpz_class tmp;
+				tmp = IntPow(baseG, X);
+
+				baseY = tmp % moduleP;
+			}
+
+			QString toQString()
+			{
+				QString result = "";
+
+				result = moduleP.get_str().c_str() + ' ';
+				result += baseG.get_str().c_str()+ ' ';
+				result += baseY.get_str().c_str();
+
+				return result;
+			}
+		};
+
+		openKey ok;
 
 		ElGamal(QString _P, QString _G, QString _X);
 
+		QString getSecretKeyStr()
+		{
+			QString result = secretKeyX.get_str().c_str();
+			return result;
+		}
+
 		static QString EncryptElGamal (QString str, openKey key);
-		static QString DecryptElGamal (QString str, openKey key, mpz_class secretKey);
+		static QString DecryptElGamal (QString str, openKey key, QString _secretKey);
 
 	protected:
 		static mpz_class IntPow(mpz_class one, mpz_class two);

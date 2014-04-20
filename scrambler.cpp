@@ -60,6 +60,8 @@ QString Scrambler::DecryptSingleReshuffle (QString str, int tableLenth)
 
 
 
+
+
 QString Scrambler::EncryptSingleReshuffleWithKey (QString str, QString key)
 {
 	while ((str.length() % key.length()) != 0)
@@ -134,6 +136,7 @@ QString Scrambler::DecryptSingleReshuffleWithKey (QString str, QString key)
 
 
 
+
 QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 {
 	int widht = 1;
@@ -193,7 +196,7 @@ QString Scrambler::EncryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 			if ((j + pos) < str.length())
 				tmp = tmp + str.at(j + pos);
 	}
-
+	qDebug() << tmp;
 	for (int i = 0; i < length; i++)
 	{
 		int num = 10;
@@ -316,6 +319,8 @@ QString Scrambler::DecryptDoubleReshuffle (QString str, int _wkey, int _lkey)
 
 
 
+
+
 int Scrambler::Module(int one, int base)
 {
 	while (one < 0)
@@ -323,8 +328,6 @@ int Scrambler::Module(int one, int base)
 
 	return one % base;
 }
-
-
 
 
 QString Scrambler::EncryptCaesar(QString str, int shift)
@@ -446,6 +449,8 @@ QString Scrambler::DecryptManyAlphabet(QString str, QString key)
 	return res;
 }
 
+
+
 Scrambler::Gamma::Gamma ()
 {
 	gammaSize = 64 / sizeof(alphabet[0]);
@@ -504,19 +509,8 @@ mpz_class Scrambler::ElGamal::IntPow(mpz_class one, mpz_class two)
 
 Scrambler::ElGamal::ElGamal(QString _P, QString _G, QString _X)
 {
+	ok = *(new openKey(_P, _G, _X));
 	secretKeyX = _X.toStdString();
-
-	ok.moduleP = _P.toStdString();
-	ok.baseG = _G.toStdString();
-
-
-	if ((ok.moduleP <= ok.baseG) || (ok.moduleP <= secretKeyX))
-		throw Exception();
-
-	mpz_class tmp;
-	tmp = IntPow(ok.baseG, secretKeyX);
-
-	ok.baseY = tmp % ok.moduleP;
 }
 
 QString Scrambler::ElGamal::EncryptElGamal(QString str, openKey key)
@@ -553,9 +547,12 @@ QString Scrambler::ElGamal::EncryptElGamal(QString str, openKey key)
 	return result;
 }
 
-QString Scrambler::ElGamal::DecryptElGamal(QString str, openKey key, mpz_class secretKey)
+QString Scrambler::ElGamal::DecryptElGamal(QString str, openKey key, QString _secretKey)
 {
 	QString result = "";
+
+	mpz_class secretKey;
+	secretKey = _secretKey.toStdString();
 
 	int lisize = sizeof(long int) / sizeof(QChar);
 	int df = lisize * 2;
