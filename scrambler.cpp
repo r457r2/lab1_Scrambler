@@ -470,8 +470,18 @@ QString Scrambler::Gamma::DecryptGamma(QString str, Gamma& key)
 }
 
 
+bool Scrambler::isSimple(mpz_class one)
+{
+	for (int i = 2; i < one; i++)
+	{
+		if ((one % i) == 0)
+			return false;
+	}
+	return true;
+}
 
-mpz_class Scrambler::ElGamal::IntPow(mpz_class one, mpz_class two)
+
+mpz_class Scrambler::IntPow(mpz_class one, mpz_class two)
 {
 	mpz_class res("1");
 
@@ -490,6 +500,10 @@ Scrambler::ElGamal::ElGamal(QString _P, QString _G, QString _X)
 {
 	mpz_class moduleP;
 	moduleP = _P.toStdString();
+
+	if (!isSimple(moduleP))
+		throw Exception();
+
 	mpz_class baseG;
 	baseG = _G.toStdString();
 	secretKeyX = _X.toStdString();
@@ -512,17 +526,10 @@ QString Scrambler::ElGamal::EncryptElGamal(QString str, openKey key)
 {
 	QString result = "";
 
-	gmp_randstate_t rnd;
-	gmp_randinit_default(rnd);
-
-	mpz_t K;
-	mpz_init(K);
-	mpz_urandomm(K, rnd, key.moduleP.get_mpz_t());
-
-	mpz_class sessionKeyK(K);
-	if (sessionKeyK == 0)
-		sessionKeyK += 1;
-	mpz_clear(K);
+	gmp_randclass rand(gmp_randinit_default);
+	mpz_class sessionKeyK;
+	sessionKeyK = rand.get_z_range(key.moduleP - 1);
+	sessionKeyK = sessionKeyK + 1;
 
 	while ((sessionKeyK <= 0) || (sessionKeyK >= key.moduleP))
 		sessionKeyK = qrand();
@@ -575,24 +582,118 @@ for (int i = 0; i < str.length(); i += df)
 
 
 
+mpz_class Scrambler::RSA::checkNOD(mpz_class max, mpz_class min)
+{
+	mpz_class tmp;
+	while (max != min)
+	{
+		tmp = max - min;
+		if (min > tmp)
+		{
+			max = min;
+			min = tmp;
+		}
+		else
+			max = tmp;
+	}
+	return max;
+}
+
 Scrambler::RSA::RSA(QString _p, QString _q)
 {
 	mpz_class p;
 	p = _p.toStdString();
+
 	mpz_class q;
 	q = _q.toStdString();
 
-	ok.N = p * q;
+	if ((p < 0) || (q < 0))
+		throw Exception();
 
-	ck.M = (p - 1) * (q - 1);
+	if ((!isSimple(p)) || (!isSimple(q)))
+		throw Exception();
+
+	mpz_class N;
+	N = p * q;
+
+	mpz_class fN;
+	fN = (p - 1) * (q - 1);
+
+	gmp_randclass rand(gmp_randinit_default);
+	mpz_class e;
+	while (true)
+	{
+		e = rand.get_z_range(fN - 1);
+		e = e + 1;
+		if (checkNOD(fN, e) == 1)
+			break;
+	}
+
+	QString publicE = e.get_str().c_str();
+	QString moduleN = N.get_str().c_str();
+	openKey tmpok(publicE, moduleN);
+	ok = tmpok;
+
+	mpz_class tmp(fN + 1);
+	mpz_class d;
+	while (true)
+	{
+		if ((tmp % e) == 0)
+		{
+			d = tmp / e;
+			break;
+		}
+		tmp += fN;
+	}
+
+	QString secretD = d.get_str().c_str();
+	closedKey tmpck(secretD, moduleN);
+	ck = tmpck;
 }
 
 //		1.	Получатель выбирает 2 больших простых целых числа p и q,
 //		на основе которых вычисляет N=pq; M=(p-1)(q-1).
 //		2.	Получатель выбирает целое случайное число d, которое является взаимопростым
 //			со значением М, и вычисляет значение е из условия ed=1(mod M).
-//		3.	d и N публикуются как открытый ключ, е и М являются закрытым ключом.
+//		3.	e и N публикуются как открытый ключ, d и N являются закрытым ключом.
 //		4.	Если S –сообщение и его длина: 1<Len(S)<N, то зашифровать этот текст можно
-//			как S’=Sd(mod N), то есть шифруется открытым ключом.
-//		5.	Получатель расшифровывает с помощью закрытого ключа: S=S’e(mod N).
+//			как S’=S^e(mod N), то есть шифруется открытым ключом.
+//		5.	Получатель расшифровывает с помощью закрытого ключа: S=S’^d(mod N).
+
+QString Scrambler::RSA::EncryptRSA(QString str, openKey key)
+{
+	QString result = "";
+
+	for (int i = 0; i < str.length(); i++)
+	{
+		int num = GetNum(str.at(i));
+
+		mpz_class a = (IntPow(num, key.publicE) % key.moduleN);
+		long int aa = a.get_ui();
+		result.append(reinterpret_cast<QChar*>(&aa), sizeof(aa)/sizeof(QChar));
+	}
+	return result;
+}
+
+QString Scrambler::RSA::DecryptRSA(QString str, closedKey key)
+{
+	QString result = "";
+
+	int lisize = sizeof(long int) / sizeof(QChar);
+
+for (int i = 0; i < str.length(); i += lisize)
+	{
+		QChar aarr[lisize];
+		for (int j = 0; j < lisize; j++)
+			aarr[j] = str.at(i + j);
+		long int a = *(reinterpret_cast<long int*>(aarr));
+
+		mpz_class tmp;
+		tmp = a;
+		mpz_class My = ((IntPow(a, key.secretD)) % key.moduleN);
+		long int M = My.get_si();
+		result += alphabet[M];
+	}
+	return result;
+}
 

@@ -79,7 +79,7 @@ public:
 	};
 
 	//ассиметричные шифры
-	//Эль Гамаля пока не работает
+	//Эль Гамаля работает// первые два числа должны быть взаимнопростыми числами.
 	class ElGamal
 	{
 	public:
@@ -135,45 +135,100 @@ public:
 
 		static QString EncryptElGamal (QString str, openKey key);
 		static QString DecryptElGamal (QString str, openKey key, QString _secretKey);
-
-	protected:
-		static mpz_class IntPow(mpz_class one, mpz_class two);
 	};
 
-	//RSA тоже пока не работает
+	//RSA, работает, на вход два простых числа
 	class RSA
 	{
 	public:
-		struct openKey
-		{
-			mpz_class d;
-			mpz_class N;
-		} ok;
+		class Exception{};
 
-		struct closedKey
+		class openKey
 		{
-			mpz_class e;
-			mpz_class M;
-		} ck;
+		public:
+			mpz_class publicE;
+			mpz_class moduleN;
+
+			openKey(){}
+			openKey(QString _E, QString _N)
+			{
+				publicE = _E.toStdString();
+				moduleN = _N.toStdString();
+			}
+
+			void operator= (openKey &other)
+			{
+				publicE = other.publicE;
+				moduleN = other.moduleN;
+			}
+
+			QString toQString()
+			{
+				QString result = "";
+
+				result = publicE.get_str().c_str();
+				result += " ";
+				result += moduleN.get_str().c_str();
+
+				return result;
+			}
+		};
+
+		class closedKey
+		{
+		public:
+			mpz_class secretD;
+			mpz_class moduleN;
+
+			closedKey(){}
+			closedKey(QString _D, QString _N)
+			{
+				secretD = _D.toStdString();
+				moduleN = _N.toStdString();
+			}
+
+			void operator= (closedKey &other)
+			{
+				secretD = other.secretD;
+				moduleN = other.moduleN;
+			}
+
+			QString toQString()
+			{
+				QString result = "";
+
+				result = secretD.get_str().c_str();
+				result += " ";
+				result += moduleN.get_str().c_str();
+
+				return result;
+			}
+		};
+
+		openKey ok;
+		closedKey ck;
 
 		RSA(QString _p, QString _q);
+		//		1.	Получатель выбирает 2 больших простых целых числа p и q,
+		//		на основе которых вычисляет N=pq; M=(p-1)(q-1).
+		//		2.	Получатель выбирает целое случайное число d, которое является взаимопростым
+		//			со значением М, и вычисляет значение е из условия ed=1(mod M).
+		//		3.	d и N публикуются как открытый ключ, е и М являются закрытым ключом.
+		//		4.	Если S –сообщение и его длина: 1<Len(S)<N, то зашифровать этот текст можно
+		//			как S’=Sd(mod N), то есть шифруется открытым ключом.
+		//		5.	Получатель расшифровывает с помощью закрытого ключа: S=S’e(mod N).
+		static QString EncryptRSA(QString str, openKey ok);
+		static QString DecryptRSA(QString str, closedKey ok);
 
-		static QString EncryptRSA();
-		static QString DecryptRSA();
-//		1.	Получатель выбирает 2 больших простых целых числа p и q,
-//		на основе которых вычисляет N=pq; M=(p-1)(q-1).
-//		2.	Получатель выбирает целое случайное число d, которое является взаимопростым
-//			со значением М, и вычисляет значение е из условия ed=1(mod M).
-//		3.	d и N публикуются как открытый ключ, е и М являются закрытым ключом.
-//		4.	Если S –сообщение и его длина: 1<Len(S)<N, то зашифровать этот текст можно
-//			как S’=Sd(mod N), то есть шифруется открытым ключом.
-//		5.	Получатель расшифровывает с помощью закрытого ключа: S=S’e(mod N).
-
+	protected:
+		static mpz_class checkNOD(mpz_class max, mpz_class min);
 	};
 
 protected:
 	static int GetNum(QChar one);
 	static int Module (int one, int base);
+	static mpz_class IntPow(mpz_class one, mpz_class two);
+	static bool isSimple(mpz_class one);
 };
 
 #endif // SCRAMBLER_H

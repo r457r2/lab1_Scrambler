@@ -11,15 +11,14 @@ int main(int argc, char *argv[])
 	MainWindow w;
 	w.show();
 
-	QString str("abcdiefg");
+	QString str("abcsdf qawde  fgh");
 	qDebug() << "Originl = "  << str;
 
-	int key1 = 21;
-	int key2 = 1243;
+	Scrambler::RSA rr("47", "31");
 
-	str = Scrambler::EncryptDoubleReshuffle(str, key1, key2);
+	str = Scrambler::RSA::EncryptRSA(str, rr.ok);
 	qDebug() << "Encrypt = "  << str;
 
-	qDebug() << "Decrypt = " << Scrambler::DecryptDoubleReshuffle(str, key1, key2);
+	qDebug() << "Decrypt = " << Scrambler::RSA::DecryptRSA(str, rr.ck);
 	return a.exec();
 }
