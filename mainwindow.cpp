@@ -251,19 +251,24 @@ Scrambler::Algoritm MainWindow::selectedAlgo()
 	else
 		return Scrambler::Invalid;
 }
-#include <QDebug>
-#include <iostream>
+
 void MainWindow::on_pushAsymmEncrypt_clicked()
 {
+	if(ui->editAsymmSource->text() == ""
+			|| ui->editAsymmPrivateKey->text() == ""
+			|| ui->editAsymmPubKey->text() == "")
+	{
+		QMessageBox::critical(this, "Ошибка", "Исходная строка и открытый ключ не должны быть пустыми.", QMessageBox::Ok);
+		return;
+	}
+
 	switch(selectedAsymmAlgo())
 	{
 	case Scrambler::ElGamalCypher:
 	{
-		if(ui->editAsymmSource->text() == ""
-				|| ui->editAsymmPrivateKey->text() == ""
-				|| ui->editAsymmPubKey->text() == "")
+		if(ui->editAsymmPrivateKey->text() == "")
 		{
-			QMessageBox::critical(this, "Ошибка", "Исходная строка и ключи не должны быть пустыми.", QMessageBox::Ok);
+			QMessageBox::critical(this, "Ошибка", "Закрытый ключ не должнен быть пустым.", QMessageBox::Ok);
 			return;
 		}
 
@@ -282,8 +287,20 @@ void MainWindow::on_pushAsymmEncrypt_clicked()
 	}
 
 	case Scrambler::Rsa:
-		QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
+	{
+		QStringList key = ui->editAsymmPubKey->text().split(" ", QString::SkipEmptyParts);
+		if(key.length() < 2)
+		{
+			QMessageBox::critical(this, "Ошибка", "Открытый ключ должен состоять из двух чисел, разделенных пробелом.", QMessageBox::Ok);
+			return;
+		}
+
+		Scrambler::RSA::openKey pubkey(key[0], key[1]);
+		ui->editAsymmEncrypted->setText(Scrambler::RSA::EncryptRSA(ui->editAsymmSource->text(), pubkey));
+
+		lastUsedAlgo = Scrambler::Rsa;
 		break;
+	}
 
 	case Scrambler::Caesar:
 	case Scrambler::Invalid:
@@ -330,8 +347,25 @@ void MainWindow::on_pushAsymmDecrypt_clicked()
 	}
 
 	case Scrambler::Rsa:
-		QMessageBox::critical(this, "Error", "Not implemented yet.", QMessageBox::Ok);
+	{
+		if(ui->editAsymmEncrypted->text() == ""
+				|| ui->editAsymmPrivateKey->text() == "")
+		{
+			QMessageBox::critical(this, "Ошибка", "Зашифрованная строка и закрытый ключ не должны быть пустыми.", QMessageBox::Ok);
+			return;
+		}
+
+		QStringList key = ui->editAsymmPrivateKey->text().split(" ", QString::SkipEmptyParts);
+		if(key.length() < 2)
+		{
+			QMessageBox::critical(this, "Ошибка", "Закрытый ключ должен состоять из двух чисел, разделенных пробелом.", QMessageBox::Ok);
+			return;
+		}
+
+		Scrambler::RSA::closedKey privatekey(key[0], key[1]);
+		ui->editAsymmSource->setText(Scrambler::RSA::DecryptRSA(ui->editAsymmEncrypted->text(), privatekey));
 		break;
+	}
 
 	case Scrambler::Caesar:
 	case Scrambler::Invalid:
@@ -371,8 +405,43 @@ void MainWindow::on_pushGenKey_clicked()
 			return;
 		}
 
-		Scrambler::ElGamal el(seed[0], seed[1], seed[2]);
-		ui->editAsymmPubKey->setText(el.ok.toQString());
-		ui->editAsymmPrivateKey->setText(el.getSecretKeyStr());
+		try
+		{
+			Scrambler::ElGamal el(seed[0], seed[1], seed[2]);
+			ui->editAsymmPubKey->setText(el.ok.toQString());
+			ui->editAsymmPrivateKey->setText(el.getSecretKeyStr());
+		}
+		catch(Scrambler::ElGamal::Exception e)
+		{
+			QMessageBox::critical(this, "Ошибка", "Первое число должно быть простым.", QMessageBox::Ok);
+			return;
+		}
+	}
+	else if(selectedAsymmAlgo() == Scrambler::Rsa)
+	{
+		if(ui->editKeySeed->text() == "")
+		{
+			QMessageBox::critical(this, "Ошибка", "Строка генерации не должна быть пустой.", QMessageBox::Ok);
+			return;
+		}
+
+		try
+		{
+			QStringList seed = ui->editKeySeed->text().split(" ", QString::SkipEmptyParts);
+			if(seed.length() < 2)
+			{
+				QMessageBox::critical(this, "Ошибка", "Строка генерации должна содержать два положительных целых числа.", QMessageBox::Ok);
+				return;
+			}
+
+			Scrambler::RSA rsa(seed[0], seed[1]);
+			ui->editAsymmPrivateKey->setText(rsa.ck.toQString());
+			ui->editAsymmPubKey->setText(rsa.ok.toQString());
+		}
+		catch(Scrambler::RSA::Exception e)
+		{
+			QMessageBox::critical(this, "Ошибка", "Что-то пошло не так.", QMessageBox::Ok);
+			return;
+		}
 	}
 }
